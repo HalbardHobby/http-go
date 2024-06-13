@@ -31,6 +31,6 @@ func handleConnection(conn net.Conn) {
 }
 
 func statusLine(statusCode int, message string) []byte {
-	status := "HTTP/1.1" + strconv.Itoa(statusCode) + " " + message + "\r\n\r\n"
+	status := "HTTP/1.1 " + strconv.Itoa(statusCode) + " " + message + "\r\n\r\n"
 	return []byte(status)
 }
