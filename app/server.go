@@ -28,23 +28,20 @@ func main() {
 }
 
 func handleConnection(conn net.Conn) {
-	reader := bufio.NewReader(conn)
-	writer := bufio.NewWriter(conn)
+	defer conn.Close()
 
+	reader := bufio.NewReader(conn)
 	ln, _, err := reader.ReadLine()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error reading request", err)
 	}
 
 	_, url := parseRequest(string(ln))
-
 	if url == "/" {
-		writer.WriteString(statusLine(200, "OK"))
+		conn.Write([]byte(statusLine(200, "OK")))
 	} else {
-		writer.WriteString(statusLine(404, "Not Found"))
+		conn.Write([]byte(statusLine(404, "Not Found")))
 	}
-	writer.Flush()
-	conn.Close()
 }
 
 func parseRequest(req string) (method string, url string) {
