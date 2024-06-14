@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"net"
 	"os"
@@ -44,9 +45,28 @@ func handleConnection(conn net.Conn) {
 		conn.Write([]byte(statusLine(200, "OK")))
 		msg := fmt.Sprintf("Content-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(splitPath[2]), splitPath[2])
 		conn.Write([]byte(msg))
+	} else if splitPath[1] == "user-agent" {
+		headers := getHeaders(reader)
+		agent := headers["User-Agent"]
+		conn.Write([]byte(statusLine(200, "OK")))
+		msg := fmt.Sprintf("Content-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(agent), agent)
+		conn.Write([]byte(msg))
 	} else {
 		conn.Write([]byte(statusLine(404, "Not Found") + "\r\n"))
 	}
+}
+
+func getHeaders(reader *bufio.Reader) map[string]string {
+	resp := make(map[string]string)
+
+	ln, _, _ := reader.ReadLine()
+
+	for !bytes.Equal(ln, []byte("")) {
+		fields := strings.Split(string(ln), ": ")
+		resp[fields[0]] = fields[1]
+		ln, _, _ = reader.ReadLine()
+	}
+	return resp
 }
 
 func parseRequest(req string) (method string, url string) {
