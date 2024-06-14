@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func main() {
@@ -26,11 +28,32 @@ func main() {
 }
 
 func handleConnection(conn net.Conn) {
-	conn.Write(statusLine(200, "OK"))
+	reader := bufio.NewReader(conn)
+	writer := bufio.NewWriter(conn)
+
+	ln, _, err := reader.ReadLine()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error reading request", err)
+	}
+
+	_, url := parseRequest(string(ln))
+
+	if url == "/" {
+		writer.WriteString(statusLine(200, "OK"))
+	} else {
+		writer.WriteString(statusLine(404, "Not Found"))
+	}
+	writer.Flush()
 	conn.Close()
 }
 
-func statusLine(statusCode int, message string) []byte {
-	status := "HTTP/1.1 " + strconv.Itoa(statusCode) + " " + message + "\r\n\r\n"
-	return []byte(status)
+func parseRequest(req string) (method string, url string) {
+	requestFields := strings.Split(req, " ")
+	method = requestFields[0]
+	url = requestFields[1]
+	return
+}
+
+func statusLine(statusCode int, message string) string {
+	return "HTTP/1.1 " + strconv.Itoa(statusCode) + " " + message + "\r\n\r\n"
 }
