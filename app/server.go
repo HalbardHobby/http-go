@@ -36,11 +36,16 @@ func handleConnection(conn net.Conn) {
 		fmt.Fprintln(os.Stderr, "Error reading request", err)
 	}
 
-	_, url := parseRequest(string(ln))
-	if url == "/" {
+	_, path := parseRequest(string(ln))
+	splitPath := strings.Split(path, "/")
+	if path == "/" {
+		conn.Write([]byte(statusLine(200, "OK") + "\r\n"))
+	} else if splitPath[1] == "echo" {
 		conn.Write([]byte(statusLine(200, "OK")))
+		msg := fmt.Sprintf("Content-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(splitPath[2]), splitPath[2])
+		conn.Write([]byte(msg))
 	} else {
-		conn.Write([]byte(statusLine(404, "Not Found")))
+		conn.Write([]byte(statusLine(404, "Not Found") + "\r\n"))
 	}
 }
 
@@ -52,5 +57,5 @@ func parseRequest(req string) (method string, url string) {
 }
 
 func statusLine(statusCode int, message string) string {
-	return "HTTP/1.1 " + strconv.Itoa(statusCode) + " " + message + "\r\n\r\n"
+	return "HTTP/1.1 " + strconv.Itoa(statusCode) + " " + message + "\r\n"
 }
