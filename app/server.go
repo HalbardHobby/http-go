@@ -11,13 +11,13 @@ import (
 	"strings"
 )
 
-var directory string = "/tmp"
+var directory *string
 
 func main() {
 
-	flag.String(directory, "directory", "Location for the files to be served.")
+	directory = flag.String("directory", "/tmp", "Location for the files to be served.")
 	flag.Parse()
-	fmt.Fprintf(os.Stdout, "Serving files from: %s\n", directory)
+	fmt.Fprintf(os.Stdout, "Serving files from: %s\n", *directory)
 
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
@@ -59,13 +59,17 @@ func handleConnection(conn net.Conn) {
 		msg := fmt.Sprintf("Content-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(agent), agent)
 		conn.Write([]byte(msg))
 	} else if splitPath[1] == "files" {
-		file, err := os.ReadFile(directory + splitPath[2])
+		target := *directory + splitPath[2]
+		_, err := os.Stat(target)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "problem getting path: %s", err.Error())
 			conn.Write([]byte(statusLine(404, "Not Found") + "\r\n"))
 		} else {
-			resp := string(file)
-			msg := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(resp), resp)
+			file, _ := os.Open(target)
+			info, _ := file.Stat()
+			fileContent := make([]byte, info.Size())
+			file.Read(fileContent)
+			msg := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(fileContent), fileContent)
 			conn.Write([]byte(msg))
 		}
 	} else {
